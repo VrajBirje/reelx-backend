@@ -7,10 +7,11 @@ const app = express();
 const wishlistRoutes = require("./routes/wishlistRoutes");
 // const { authenticate } = require('./middlewares/auth');
 const cartRoutes = require("./routes/cartRoutes");
+const paymentRoutes = require('./routes/razorRoutes');
 
 // Allow requests from specific origin (frontend domain)
 // const allowedOrigins = ['https://shree-vidya-saraswati-pujan.netlify.app'];
-const allowedOrigins = ['https://reelxclothing.netlify.app'];
+const allowedOrigins = ['http://localhost:3000'];
 app.use(cors({
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
@@ -34,6 +35,7 @@ app.use('/api/products',  productRoutes);
 app.use('/api/raw-tshirts',  raw_tshirtsRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
+app.use('/api/payment', paymentRoutes);
 
 
 const PORT = process.env.PORT || 5000;
