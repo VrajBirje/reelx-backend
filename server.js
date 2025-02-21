@@ -10,7 +10,7 @@ const cartRoutes = require("./routes/cartRoutes");
 
 // Allow requests from specific origin (frontend domain)
 // const allowedOrigins = ['https://shree-vidya-saraswati-pujan.netlify.app'];
-const allowedOrigins = ['http://localhost:3000'];
+const allowedOrigins = ['https://reelxclothing.netlify.app/'];
 app.use(cors({
   origin: function (origin, callback) {
     if (allowedOrigins.indexOf(origin) !== -1 || !origin) {
