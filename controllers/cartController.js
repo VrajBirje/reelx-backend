@@ -34,11 +34,11 @@ const getCartItems = async (req, res) => {
   const deleteCartItem = async (req, res) => {
     const { customer_id, product_id, size } = req.body;
   
-    if (!customer_id || !product_id || !size) {
+    if (!customer_id || !product_id ) {
       return res.status(400).json({ success: false, message: "customer_id, product_id, and size are required" });
     }
   
-    const response = await cartService.removeFromCart(customer_id, product_id, size);
+    const response = await cartService.removeFromCart(customer_id, product_id);
   
     if (response.success) {
       return res.status(200).json(response);

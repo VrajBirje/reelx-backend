@@ -105,12 +105,12 @@ const getCartItemsByCustomer = async (customer_id) => {
 };
 
 
-const removeFromCart = async (customer_id, product_id, size) => {
+const removeFromCart = async (customer_id, product_id) => {
     try {
         const { error } = await supabase
             .from("cart")
             .delete()
-            .match({ customer_id, product_id, size });
+            .match({ customer_id, product_id });
 
         if (error) throw error;
 
@@ -126,8 +126,7 @@ const updateCartQuantity = async (customer_id, raw_tshirt_id, size, quantity) =>
             .from("raw_tshirts")
             .select("quantity")
             .eq("id", raw_tshirt_id) // Use raw_tshirt_id instead of product_id
-            .eq("size", size)
-            .single();
+            .maybeSingle();
 
         if (rawError) throw rawError;
         if (!rawTshirt) throw new Error("Product size not found");
