@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
 const productRoutes = require('./routes/productRoutes');
+const addressRoutes = require('./routes/addressRoutes');
 const raw_tshirtsRoutes = require('./routes/rawTshirtRoutes');
 const app = express();
 const wishlistRoutes = require("./routes/wishlistRoutes");
@@ -37,6 +38,7 @@ app.use('/api/raw-tshirts',  raw_tshirtsRoutes);
 app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/address', addressRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
