@@ -15,7 +15,8 @@ const orderRoutes = require('./routes/orderRoutes');
 // Allow requests from specific origin (frontend domain)
 const allowedOrigins = [
   'https://reelxclothing.netlify.app',
-  'http://localhost:3000' // Add localhost:3000 to the allowed origins
+  'http://localhost:3000', // Add localhost:3000 to the allowed origins
+  'https://reelx-seven.vercel.app'
 ];
 
 app.use(cors({

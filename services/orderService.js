@@ -120,3 +120,97 @@ exports.createOrder = async (user_id, customer_name, address_details, contact_de
         throw error;
     }
 };
+
+// 🟢 Get All Orders for a User
+exports.getOrdersByUserId = async (user_id) => {
+    try {
+        const { data: orders, error } = await supabase
+            .from("orders")
+            .select("*")
+            .eq("user_id", user_id);
+
+        if (error) throw error;
+        return { success: true, data: orders };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+// 🟡 Update Order Status
+exports.updateOrderStatus = async (order_id, status) => {
+    const validStatuses = ['placed', 'shipped', 'delivered', 'cancelled'];
+
+    if (!validStatuses.includes(status)) {
+        throw new Error("Invalid order status.");
+    }
+
+    try {
+        const { error } = await supabase
+            .from("orders")
+            .update({ status })
+            .eq("order_id", order_id);
+
+        if (error) throw error;
+        return { success: true, message: "Order status updated successfully." };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
+
+// 🛑 Cancel Order (Only if Status is "Placed") & Restore Stock
+exports.cancelOrder = async (order_id) => {
+    try {
+        // Fetch the order details including products
+        const { data: order, error: fetchError } = await supabase
+            .from("orders")
+            .select("status, products")
+            .eq("order_id", order_id)
+            .single();
+
+        if (fetchError) throw fetchError;
+        if (!order) throw new Error("Order not found.");
+
+        // Check if the order is eligible for cancellation
+        if (order.status !== "placed") {
+            throw new Error("Order cannot be canceled as it has already been processed.");
+        }
+
+        // 🟡 Restore Stock for Raw T-Shirts
+        for (const product of order.products) {
+            if (product.raw_tshirt && product.raw_tshirt.id) {
+                // Fetch the current raw_tshirt quantity
+                const { data: rawTshirt, error: rawTshirtError } = await supabase
+                    .from("raw_tshirts")
+                    .select("quantity")
+                    .eq("id", product.raw_tshirt.id)
+                    .single();
+
+                if (rawTshirtError) throw rawTshirtError;
+                if (!rawTshirt) throw new Error(`Raw t-shirt ID ${product.raw_tshirt.id} not found.`);
+
+                // Calculate the new quantity after adding back the ordered quantity
+                const newQuantity = rawTshirt.quantity + product.quantity;
+
+                // Update the raw_tshirt quantity
+                const { error: updateStockError } = await supabase
+                    .from("raw_tshirts")
+                    .update({ quantity: newQuantity })
+                    .eq("id", product.raw_tshirt.id);
+
+                if (updateStockError) throw new Error(`Failed to update stock for raw_tshirt ID ${product.raw_tshirt.id}`);
+            }
+        }
+
+        // Update order status to "cancelled"
+        const { error: updateError } = await supabase
+            .from("orders")
+            .update({ status: "cancelled" })
+            .eq("order_id", order_id);
+
+        if (updateError) throw updateError;
+
+        return { success: true, message: "Order has been successfully canceled, and stock has been restored." };
+    } catch (error) {
+        throw new Error(error.message);
+    }
+};
