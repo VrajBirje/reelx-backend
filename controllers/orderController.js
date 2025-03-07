@@ -5,7 +5,7 @@ exports.createOrder = async (req, res) => {
     try {
         const { user_id, customer_name, address_details, contact_details, providedSubtotal, providedTotal, providedDiscountedAmount, shipping_charges, payment_method, coupon_code } = req.body;
 
-        if (!user_id || !customer_name || !address_details || !contact_details || !shipping_charges || !payment_method) {
+        if (!user_id || !customer_name || !address_details || !contact_details || shipping_charges === undefined || !payment_method) {
             return res.status(400).json({ success: false, message: "Missing required fields." });
         }
 
