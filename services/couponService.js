@@ -50,7 +50,7 @@ exports.validateCoupon = async (code, clerk_user_id, order_amount, is_new_user) 
     }
 
     // 🛑 Check user-specific condition (if list is not empty)
-    if (coupon.user_specific.length > 0 && !coupon.user_specific.includes(clerk_user_id)) {
+    if (coupon.user_specific && coupon.user_specific.length > 0 && !coupon.user_specific.includes(clerk_user_id)) {
         throw new Error('This coupon is not applicable for your account.');
     }
 

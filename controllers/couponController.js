@@ -25,6 +25,12 @@ exports.updateCoupon = async (req, res) => {
 exports.validateCoupon = async (req, res) => {
     try {
         const { code, clerk_user_id, order_amount, is_new_user } = req.body;
+
+        // Validate input
+        if (!code || !clerk_user_id || !order_amount || is_new_user === undefined) {
+            throw new Error('Missing required fields in the request body.');
+        }
+
         const validation = await couponService.validateCoupon(code, clerk_user_id, order_amount, is_new_user);
         res.json({ success: true, ...validation });
     } catch (error) {
