@@ -8,7 +8,9 @@ const app = express();
 const wishlistRoutes = require("./routes/wishlistRoutes");
 // const { authenticate } = require('./middlewares/auth');
 const cartRoutes = require("./routes/cartRoutes");
+const couponRoutes = require('./routes/couponRoutes');
 const paymentRoutes = require('./routes/razorRoutes');
+const orderRoutes = require('./routes/orderRoutes');
 
 // Allow requests from specific origin (frontend domain)
 const allowedOrigins = [
@@ -39,6 +41,8 @@ app.use("/api/wishlist", wishlistRoutes);
 app.use("/api/cart", cartRoutes);
 app.use('/api/payment', paymentRoutes);
 app.use('/api/address', addressRoutes);
+app.use('/api/orders', orderRoutes);
+app.use('/api/coupons', couponRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

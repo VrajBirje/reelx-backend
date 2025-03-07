@@ -32,7 +32,7 @@ const getCartItems = async (req, res) => {
   };
   
   const deleteCartItem = async (req, res) => {
-    const { customer_id, product_id, size } = req.body;
+    const { customer_id, product_id } = req.body;
   
     if (!customer_id || !product_id ) {
       return res.status(400).json({ success: false, message: "customer_id, product_id, and size are required" });
