@@ -75,46 +75,95 @@ const getProductById = async (product_id) => {
 };
 
 
+// const getPaginatedProducts2 = async (page, limit, category_id, sort) => {
+//   let query = supabase.from('product').select('*', { count: 'exact' });
+
+//   console.log("🔹 Query Params:", { page, limit, category_id, sort });
+
+//   // ✅ Convert category_id properly
+//   if (category_id) {
+//     category_id = parseInt(category_id);
+//     if (isNaN(category_id)) {
+//       console.error("❌ Invalid category_id:", category_id);
+//       throw new Error("Invalid category_id");
+//     }
+//     query = query.eq('category_id', category_id);
+//   }
+
+//   // ✅ Sorting by discountedprice
+//   if (sort === 'asc') {
+//     query = query.order('discountedprice', { ascending: true });
+//   } else if (sort === 'desc') {
+//     query = query.order('discountedprice', { ascending: false });
+//   } else {
+//     query = query.order('product_id', { ascending: true }); // Default sorting
+//   }
+
+//   // ✅ Pagination
+//   const from = (page - 1) * limit;
+//   const to = from + limit - 1;
+//   query = query.range(from, to);
+
+//   // ✅ Fetch Data from Supabase
+//   const { data, error, count } = await query;
+
+//   if (error) {
+//     console.error("❌ Supabase Error:", error);
+//     throw new Error("Database query failed");
+//   }
+
+//   // console.log("✅ Query Result:", { total: count, data });
+
+//   return { total: count, page, limit, products: data };
+// };
 const getPaginatedProducts2 = async (page, limit, category_id, sort) => {
-  let query = supabase.from('product').select('*', { count: 'exact' });
-
-  console.log("🔹 Query Params:", { page, limit, category_id, sort });
-
-  // ✅ Convert category_id properly
-  if (category_id) {
-    category_id = parseInt(category_id);
-    if (isNaN(category_id)) {
-      console.error("❌ Invalid category_id:", category_id);
-      throw new Error("Invalid category_id");
+  try {
+    // Validate inputs
+    if (category_id) {
+      category_id = parseInt(category_id);
+      if (isNaN(category_id)) {
+        console.error("❌ Invalid category_id:", category_id);
+        throw new Error("Invalid category_id");
+      }
     }
-    query = query.eq('category_id', category_id);
+
+    // Build query
+    let query = supabase
+      .from('product')
+      .select('product_id, name, discountedprice, category_id, tag, images', { count: 'exact' }); // Select only required columns
+
+    // Apply filters
+    if (category_id) {
+      query = query.eq('category_id', category_id);
+    }
+
+    // Apply sorting
+    if (sort === 'asc') {
+      query = query.order('discountedprice', { ascending: true });
+    } else if (sort === 'desc') {
+      query = query.order('discountedprice', { ascending: false });
+    } else {
+      query = query.order('product_id', { ascending: true }); // Default sorting
+    }
+
+    // Apply pagination
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+    query = query.range(from, to);
+
+    // Fetch data
+    const { data, error, count } = await query;
+
+    if (error) {
+      console.error("❌ Supabase Error:", error);
+      throw new Error("Database query failed");
+    }
+
+    return { total: count, page, limit, products: data };
+  } catch (error) {
+    console.error("❌ Error in getPaginatedProducts2:", error);
+    throw error;
   }
-
-  // ✅ Sorting by discountedprice
-  if (sort === 'asc') {
-    query = query.order('discountedprice', { ascending: true });
-  } else if (sort === 'desc') {
-    query = query.order('discountedprice', { ascending: false });
-  } else {
-    query = query.order('product_id', { ascending: true }); // Default sorting
-  }
-
-  // ✅ Pagination
-  const from = (page - 1) * limit;
-  const to = from + limit - 1;
-  query = query.range(from, to);
-
-  // ✅ Fetch Data from Supabase
-  const { data, error, count } = await query;
-
-  if (error) {
-    console.error("❌ Supabase Error:", error);
-    throw new Error("Database query failed");
-  }
-
-  // console.log("✅ Query Result:", { total: count, data });
-
-  return { total: count, page, limit, products: data };
 };
 
 module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById };
