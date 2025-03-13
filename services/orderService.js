@@ -1,7 +1,7 @@
 const { supabase } = require('../config/config');
 
 // 🔵 Create Order with Cart Fetching & Stock Check
-exports.createOrder = async (user_id, customer_name, address_details, contact_details, providedSubtotal, providedTotal, providedDiscountedAmount, shipping_charges, payment_method, coupon_code) => {
+exports.createOrder = async (user_id, customer_name, address_details, contact_details, providedSubtotal, providedTotal, providedDiscountedAmount, cod_charges, shipping_charges, payment_method, coupon_code) => {
     try {
         // 🛒 Fetch Cart Items for the User
         const { data: cartItems, error: cartError } = await supabase
@@ -60,16 +60,20 @@ exports.createOrder = async (user_id, customer_name, address_details, contact_de
         }));
 
         providedDiscountedAmount = providedDiscountedAmount ?? 0; // Default to 0 if undefined
-        shipping_charges = shipping_charges ?? 0;
+        shipping_charges = shipping_charges ?? 50;
+        cod_charges = cod_charges ?? 0;
 
         // 🏷️ Compute Final Total Amount
-        let computedTotal = computedSubtotal - providedDiscountedAmount + shipping_charges;
+        // let computedTotal = computedSubtotal - providedDiscountedAmount + shipping_charges + cod_charges;
+        let computedTotal = Number(computedSubtotal) - Number(providedDiscountedAmount) + Number(shipping_charges) + Number(cod_charges);
+
 
         // 🔍 Validate Computed Values Against Provided Values
         if (
             Number(computedSubtotal) !== Number(providedSubtotal) || 
             Number(computedTotal) !== Number(providedTotal)
         ) {
+            console.log(cod_charges)
             console.log(Number(computedSubtotal),"computedSubtotal")
             console.log(Number(providedSubtotal),"ProSub")
             console.log(Number(computedTotal),"comTotal")
@@ -90,6 +94,7 @@ exports.createOrder = async (user_id, customer_name, address_details, contact_de
                 total_amount: computedTotal,
                 discounted_amount: providedDiscountedAmount,
                 shipping_charges,
+                cod_charges,
                 status: 'placed', // Default status
                 coupon_code,
                 payment_method

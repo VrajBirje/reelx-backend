@@ -32,13 +32,13 @@ const getCartItems = async (req, res) => {
   };
   
   const deleteCartItem = async (req, res) => {
-    const { customer_id, product_id } = req.body;
+    const { cart_id } = req.body;
   
-    if (!customer_id || !product_id ) {
-      return res.status(400).json({ success: false, message: "customer_id, product_id, and size are required" });
+    if (!cart_id ) {
+      return res.status(400).json({ success: false, message: "cart_id are required" });
     }
   
-    const response = await cartService.removeFromCart(customer_id, product_id);
+    const response = await cartService.removeFromCart(cart_id);
   
     if (response.success) {
       return res.status(200).json(response);
@@ -48,19 +48,24 @@ const getCartItems = async (req, res) => {
   };
 
   const updateCartQuantity = async (req, res) => {
-    const { customer_id, product_id, size, quantity } = req.body;
-  
-    if (!customer_id || !product_id || !size || quantity == null) {
-      return res.status(400).json({ success: false, message: "customer_id, product_id, size, and quantity are required" });
+    const { customer_id, product_id, size, quantity, cart_id } = req.body;
+
+    // Validate required fields
+    if (!customer_id || !product_id || !size || quantity == null || !cart_id) {
+        return res.status(400).json({ 
+            success: false, 
+            message: "customer_id, product_id, size, quantity, and cart_id are required" 
+        });
     }
-  
-    const response = await cartService.updateCartQuantity(customer_id, product_id, size, quantity);
-  
+
+    // Call the service function with cart_id
+    const response = await cartService.updateCartQuantity(customer_id, product_id, size, quantity, cart_id);
+
     if (response.success) {
-      return res.status(200).json(response);
+        return res.status(200).json(response);
     } else {
-      return res.status(500).json({ success: false, message: response.message });
+        return res.status(500).json({ success: false, message: response.message });
     }
-  };
+};
 
 module.exports = { addToCart, getCartItems, deleteCartItem, updateCartQuantity };

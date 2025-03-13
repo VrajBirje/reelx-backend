@@ -63,15 +63,17 @@ const addToCart = async (customer_id, product_id, size, quantity = 1) => {
 
 const getCartItemsByCustomer = async (customer_id) => {
     try {
+        // Fetch cart items including cart_id
         const { data: cartItems, error } = await supabase
             .from("cart")
-            .select("product_id, quantity, size, raw_tshirt_id")
+            .select("cart_id, product_id, quantity, size, raw_tshirt_id") // Include cart_id in the select
             .eq("customer_id", customer_id);
 
         if (error) throw error;
 
-        // Fetch product details for each cart item
+        // Fetch product and raw_tshirt details for each cart item
         const productPromises = cartItems.map(async (item) => {
+            // Fetch product details
             const { data: product, error: productError } = await supabase
                 .from("product")
                 .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color")
@@ -87,12 +89,16 @@ const getCartItemsByCustomer = async (customer_id) => {
                 .eq("id", item.raw_tshirt_id)
                 .single();
 
+            if (rawTshirtError) throw rawTshirtError;
+
+            // Return combined data including cart_id
             return {
-                ...product,
+                cart_id: item.cart_id, // Include cart_id in the response
                 product_id: item.product_id,
                 quantity: item.quantity,
                 size: item.size,
                 raw_tshirt: rawTshirt || null,
+                ...product, // Include product details
             };
         });
 
@@ -105,12 +111,13 @@ const getCartItemsByCustomer = async (customer_id) => {
 };
 
 
-const removeFromCart = async (customer_id, product_id) => {
+const removeFromCart = async (cart_id) => {
     try {
+        // Delete the cart item using cart_id
         const { error } = await supabase
             .from("cart")
             .delete()
-            .match({ customer_id, product_id });
+            .match({ cart_id }); // Use cart_id to match the specific cart item
 
         if (error) throw error;
 
@@ -119,8 +126,15 @@ const removeFromCart = async (customer_id, product_id) => {
         return { success: false, message: error.message };
     }
 };
-const updateCartQuantity = async (customer_id, raw_tshirt_id, size, quantity) => {
+
+const updateCartQuantity = async (customer_id, raw_tshirt_id, size, quantity, cart_id) => {
     try {
+        console.log("Received cart_id:", cart_id); // Debugging: Log the cart_id
+
+        if (!cart_id) {
+            throw new Error("cart_id is required");
+        }
+
         // Get the available quantity of that raw_tshirt_id
         const { data: rawTshirt, error: rawError } = await supabase
             .from("raw_tshirts")
@@ -139,12 +153,13 @@ const updateCartQuantity = async (customer_id, raw_tshirt_id, size, quantity) =>
         const { error } = await supabase
             .from("cart")
             .update({ quantity })
-            .match({ customer_id, raw_tshirt_id, size });
+            .match({ cart_id }); // Use only cart_id to match the specific cart item
 
         if (error) throw error;
 
         return { success: true, message: "Cart quantity updated successfully" };
     } catch (error) {
+        console.error("Error in updateCartQuantity:", error.message); // Debugging: Log the error
         return { success: false, message: error.message };
     }
 };
