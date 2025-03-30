@@ -1,23 +1,31 @@
 const { supabase } = require("../config/config");
+const productsData = require("../data/productData");
 
 /**
  * Add product to the cart
  */
+
 const addToCart = async (customer_id, product_id, size, quantity = 1) => {
     if (!size) {
         return { success: false, message: "Size is required." };
     }
 
     try {
-        // Fetch product details
-        const { data: product, error: productError } = await supabase
-            .from("product")
-            .select("*")
-            .eq("product_id", product_id)
-            .single();
+        // Check if product exists in local data first
+        let product = productsData.find(p => p.product_id === product_id);
 
-        if (productError || !product) {
-            return { success: false, message: "Product not found." };
+        if (!product) {
+            // Fetch from Supabase if not in local data
+            const { data: fetchedProduct, error: productError } = await supabase
+                .from("product")
+                .select("*")
+                .eq("product_id", product_id)
+                .single();
+
+            if (productError || !fetchedProduct) {
+                return { success: false, message: "Product not found." };
+            }
+            product = fetchedProduct;
         }
 
         // Find raw_tshirt_id based on size
@@ -66,21 +74,27 @@ const getCartItemsByCustomer = async (customer_id) => {
         // Fetch cart items including cart_id
         const { data: cartItems, error } = await supabase
             .from("cart")
-            .select("cart_id, product_id, quantity, size, raw_tshirt_id") // Include cart_id in the select
+            .select("cart_id, product_id, quantity, size, raw_tshirt_id")
             .eq("customer_id", customer_id);
 
         if (error) throw error;
 
         // Fetch product and raw_tshirt details for each cart item
         const productPromises = cartItems.map(async (item) => {
-            // Fetch product details
-            const { data: product, error: productError } = await supabase
-                .from("product")
-                .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color")
-                .eq("product_id", item.product_id)
-                .single();
+            // Check if product exists in local data
+            let product = productsData.find(p => p.product_id === item.product_id);
 
-            if (productError) throw productError;
+            if (!product) {
+                // Fetch from Supabase if not found in local data
+                const { data: fetchedProduct, error: productError } = await supabase
+                    .from("product")
+                    .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color, raw_tshirt_ids")
+                    .eq("product_id", item.product_id)
+                    .single();
+
+                if (productError) throw productError;
+                product = fetchedProduct;
+            }
 
             // Fetch raw_tshirt details
             const { data: rawTshirt, error: rawTshirtError } = await supabase
@@ -91,14 +105,13 @@ const getCartItemsByCustomer = async (customer_id) => {
 
             if (rawTshirtError) throw rawTshirtError;
 
-            // Return combined data including cart_id
             return {
-                cart_id: item.cart_id, // Include cart_id in the response
+                cart_id: item.cart_id,
                 product_id: item.product_id,
                 quantity: item.quantity,
                 size: item.size,
                 raw_tshirt: rawTshirt || null,
-                ...product, // Include product details
+                ...product,
             };
         });
 

@@ -1,33 +1,158 @@
 const { supabase } = require('../config/config');
 
 // 🔵 Create Order with Cart Fetching & Stock Check
+// exports.createOrder = async (user_id, customer_name, address_details, contact_details, providedSubtotal, providedTotal, providedDiscountedAmount, cod_charges, shipping_charges, payment_method, coupon_code) => {
+//     try {
+//         // 🛒 Fetch Cart Items for the User
+//         const { data: cartItems, error: cartError } = await supabase
+//             .from("cart")
+//             .select("product_id, quantity, size, raw_tshirt_id")
+//             .eq("customer_id", user_id);
+
+//         if (cartError || !cartItems.length) throw new Error('No items found in cart.');
+
+//         // 🛍️ Fetch Product & Raw T-Shirt Details
+//         let computedSubtotal = 0;
+//         let rawTshirtUpdates = [];
+
+//         const products = await Promise.all(cartItems.map(async (item) => {
+//             // 🟢 Fetch Product Details
+//             const { data: product, error: productError } = await supabase
+//                 .from("product")
+//                 .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color")
+//                 .eq("product_id", item.product_id)
+//                 .single();
+//             if (productError) throw productError;
+
+//             // 🟢 Compute Subtotal
+//             computedSubtotal += product.discountedprice * item.quantity;
+
+//             // 🟡 Fetch & Validate Raw T-Shirt Stock
+//             let rawTshirt = null;
+//             if (item.raw_tshirt_id) {
+//                 const { data: rawTshirtData, error: rawTshirtError } = await supabase
+//                     .from("raw_tshirts")
+//                     .select("id, quantity, size")
+//                     .eq("id", item.raw_tshirt_id)
+//                     .single();
+
+//                 if (rawTshirtError) throw rawTshirtError;
+//                 if (rawTshirtData.quantity < item.quantity) {
+//                     throw new Error(payment_method === 'online'
+//                         ? `Insufficient stock for ${product.name}. Your payment will be refunded shortly.`
+//                         : `Insufficient stock for ${product.name}.`);
+//                 }
+
+//                 rawTshirt = rawTshirtData;
+//                 rawTshirtUpdates.push({
+//                     id: rawTshirt.id,
+//                     newQuantity: rawTshirt.quantity - item.quantity
+//                 });
+//             }
+
+//             return {
+//                 ...product,
+//                 product_id: item.product_id,
+//                 quantity: item.quantity,
+//                 size: item.size,
+//                 raw_tshirt: rawTshirt || null
+//             };
+//         }));
+
+//         providedDiscountedAmount = providedDiscountedAmount ?? 0; // Default to 0 if undefined
+//         shipping_charges = shipping_charges ?? 50;
+//         cod_charges = cod_charges ?? 0;
+
+//         // 🏷️ Compute Final Total Amount
+//         // let computedTotal = computedSubtotal - providedDiscountedAmount + shipping_charges + cod_charges;
+//         let computedTotal = Number(computedSubtotal) - Number(providedDiscountedAmount) + Number(shipping_charges) + Number(cod_charges);
+
+
+//         // 🔍 Validate Computed Values Against Provided Values
+//         if (
+//             Number(computedSubtotal) !== Number(providedSubtotal) || 
+//             Number(computedTotal) !== Number(providedTotal)
+//         ) {
+//             console.log(cod_charges)
+//             console.log(Number(computedSubtotal),"computedSubtotal")
+//             console.log(Number(providedSubtotal),"ProSub")
+//             console.log(Number(computedTotal),"comTotal")
+//             console.log(Number(providedTotal),"proTotal")
+//             throw new Error("Subtotal or total amount mismatch.");
+//         }
+
+//         // 🟢 Insert Order into `orders` Table
+//         const { data: order, error: orderError } = await supabase
+//             .from("orders")
+//             .insert([{
+//                 user_id,
+//                 customer_name,
+//                 address_details,
+//                 contact_details,
+//                 products,
+//                 subtotal: computedSubtotal,
+//                 total_amount: computedTotal,
+//                 discounted_amount: providedDiscountedAmount,
+//                 shipping_charges,
+//                 cod_charges,
+//                 status: 'placed', // Default status
+//                 coupon_code,
+//                 payment_method
+//             }])
+//             .select();
+
+//         if (orderError) throw orderError;
+
+//         // 🟡 Update Raw T-Shirt Stock
+//         for (const update of rawTshirtUpdates) {
+//             const { error: stockError } = await supabase
+//                 .from("raw_tshirts")
+//                 .update({ quantity: update.newQuantity })
+//                 .eq("id", update.id);
+//             if (stockError) throw new Error(`Failed to update stock for raw_tshirt ID ${update.id}`);
+//         }
+
+//         // 🗑️ Delete Cart Items After Order is Created
+//         const { error: deleteError } = await supabase
+//             .from("cart")
+//             .delete()
+//             .eq("customer_id", user_id);
+
+//         if (deleteError) throw deleteError;
+
+//         return order;
+//     } catch (error) {
+//         throw error;
+//     }
+// };
+const products = require('../data/productData'); // Import local product data
+
 exports.createOrder = async (user_id, customer_name, address_details, contact_details, providedSubtotal, providedTotal, providedDiscountedAmount, cod_charges, shipping_charges, payment_method, coupon_code) => {
     try {
-        // 🛒 Fetch Cart Items for the User
+        // 🛒 Fetch Cart Items for the User (from Supabase)
         const { data: cartItems, error: cartError } = await supabase
             .from("cart")
             .select("product_id, quantity, size, raw_tshirt_id")
             .eq("customer_id", user_id);
 
-        if (cartError || !cartItems.length) throw new Error('No items found in cart.');
+        if (cartError || !cartItems?.length) throw new Error('No items found in cart.');
 
-        // 🛍️ Fetch Product & Raw T-Shirt Details
+        // 🛍️ Process Cart Items
         let computedSubtotal = 0;
         let rawTshirtUpdates = [];
+        let orderProducts = [];
 
-        const products = await Promise.all(cartItems.map(async (item) => {
-            // 🟢 Fetch Product Details
-            const { data: product, error: productError } = await supabase
-                .from("product")
-                .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color")
-                .eq("product_id", item.product_id)
-                .single();
-            if (productError) throw productError;
+        for (const item of cartItems) {
+            // 🔍 Find Product in Local Data
+            const product = products.find(p => p.product_id === item.product_id);
+            if (!product) {
+                throw new Error(`Product ID ${item.product_id} not found`);
+            }
 
-            // 🟢 Compute Subtotal
+            // 💰 Calculate Subtotal
             computedSubtotal += product.discountedprice * item.quantity;
 
-            // 🟡 Fetch & Validate Raw T-Shirt Stock
+            // 🧵 Handle Raw T-Shirt Stock (from Supabase)
             let rawTshirt = null;
             if (item.raw_tshirt_id) {
                 const { data: rawTshirtData, error: rawTshirtError } = await supabase
@@ -50,38 +175,37 @@ exports.createOrder = async (user_id, customer_name, address_details, contact_de
                 });
             }
 
-            return {
+            // 📦 Prepare Order Product Data
+            orderProducts.push({
                 ...product,
                 product_id: item.product_id,
                 quantity: item.quantity,
                 size: item.size,
                 raw_tshirt: rawTshirt || null
-            };
-        }));
-
-        providedDiscountedAmount = providedDiscountedAmount ?? 0; // Default to 0 if undefined
-        shipping_charges = shipping_charges ?? 50;
-        cod_charges = cod_charges ?? 0;
-
-        // 🏷️ Compute Final Total Amount
-        // let computedTotal = computedSubtotal - providedDiscountedAmount + shipping_charges + cod_charges;
-        let computedTotal = Number(computedSubtotal) - Number(providedDiscountedAmount) + Number(shipping_charges) + Number(cod_charges);
-
-
-        // 🔍 Validate Computed Values Against Provided Values
-        if (
-            Number(computedSubtotal) !== Number(providedSubtotal) || 
-            Number(computedTotal) !== Number(providedTotal)
-        ) {
-            console.log(cod_charges)
-            console.log(Number(computedSubtotal),"computedSubtotal")
-            console.log(Number(providedSubtotal),"ProSub")
-            console.log(Number(computedTotal),"comTotal")
-            console.log(Number(providedTotal),"proTotal")
-            throw new Error("Subtotal or total amount mismatch.");
+            });
         }
 
-        // 🟢 Insert Order into `orders` Table
+        // 🏷️ Calculate Order Totals
+        providedDiscountedAmount = providedDiscountedAmount ?? 0;
+        shipping_charges = shipping_charges ?? 50;
+        cod_charges = cod_charges ?? 0;
+        let computedTotal = Number(computedSubtotal) - Number(providedDiscountedAmount) + Number(shipping_charges) + Number(cod_charges);
+
+        // 🔍 Validate Amounts
+        if (
+            Math.abs(Number(computedSubtotal) - Number(providedSubtotal)) > 1 || // Allow 1 rupee rounding difference
+            Math.abs(Number(computedTotal) - Number(providedTotal)) > 1
+        ) {
+            console.error('Amount mismatch:', {
+                computedSubtotal,
+                providedSubtotal,
+                computedTotal,
+                providedTotal
+            });
+            throw new Error("Amount calculation mismatch detected");
+        }
+
+        // 📝 Create Order in Supabase
         const { data: order, error: orderError } = await supabase
             .from("orders")
             .insert([{
@@ -89,39 +213,41 @@ exports.createOrder = async (user_id, customer_name, address_details, contact_de
                 customer_name,
                 address_details,
                 contact_details,
-                products,
+                products: orderProducts,
                 subtotal: computedSubtotal,
                 total_amount: computedTotal,
                 discounted_amount: providedDiscountedAmount,
                 shipping_charges,
                 cod_charges,
-                status: 'placed', // Default status
+                status: payment_method === 'online' ? 'processing' : 'placed',
                 coupon_code,
-                payment_method
+                payment_method,
+                created_at: new Date().toISOString()
             }])
             .select();
 
         if (orderError) throw orderError;
 
-        // 🟡 Update Raw T-Shirt Stock
+        // 📉 Update Raw T-Shirt Stock (in Supabase)
         for (const update of rawTshirtUpdates) {
             const { error: stockError } = await supabase
                 .from("raw_tshirts")
                 .update({ quantity: update.newQuantity })
                 .eq("id", update.id);
-            if (stockError) throw new Error(`Failed to update stock for raw_tshirt ID ${update.id}`);
+            if (stockError) console.error(`Stock update failed for ID ${update.id}:`, stockError);
         }
 
-        // 🗑️ Delete Cart Items After Order is Created
+        // 🗑️ Clear Cart (in Supabase)
         const { error: deleteError } = await supabase
             .from("cart")
             .delete()
             .eq("customer_id", user_id);
 
-        if (deleteError) throw deleteError;
+        if (deleteError) console.error('Cart cleanup failed:', deleteError);
 
-        return order;
+        return order[0]; // Return the created order
     } catch (error) {
+        console.error('Order creation failed:', error);
         throw error;
     }
 };

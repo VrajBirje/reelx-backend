@@ -73,4 +73,33 @@ const getPaginatedProducts2 = async (req, res) => {
   }
 };
 
-module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById  };
+// Get Products by ID
+const getProductsById = async (req, res) => {
+  try {
+    // Accept both comma-separated string or array in request
+    let productIds = req.query.ids || req.body.ids;
+    
+    if (!productIds) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Product IDs are required" 
+      });
+    }
+
+    // Convert string to array if needed
+    if (typeof productIds === 'string') {
+      productIds = productIds.split(',').map(id => parseInt(id.trim()));
+    }
+
+    const data = await productService.getProductsById(productIds);
+    res.status(200).json({ success: true, data });
+  } catch (error) {
+    console.error("Error fetching products:", error.message || error);
+    res.status(error.message.includes("No products found") ? 404 : 500).json({
+      success: false,
+      message: error.message || "Internal Server Error"
+    });
+  }
+};
+
+module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById, getProductsById  };
