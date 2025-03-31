@@ -74,32 +74,30 @@ const getPaginatedProducts2 = async (req, res) => {
 };
 
 // Get Products by ID
-const getProductsById = async (req, res) => {
+const getProductsByIds = async (req, res) => {
   try {
-    // Accept both comma-separated string or array in request
-    let productIds = req.query.ids || req.body.ids;
-    
-    if (!productIds) {
-      return res.status(400).json({ 
-        success: false, 
-        message: "Product IDs are required" 
-      });
+    const { ids } = req.body; // Extract IDs from the request body
+
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: "Invalid product IDs" });
     }
 
-    // Convert string to array if needed
-    if (typeof productIds === 'string') {
-      productIds = productIds.split(',').map(id => parseInt(id.trim()));
+    const productIds = ids.map(id => parseInt(id, 10)).filter(id => !isNaN(id));
+
+    if (productIds.length === 0) {
+      return res.status(400).json({ success: false, message: "No valid product IDs found" });
     }
 
-    const data = await productService.getProductsById(productIds);
-    res.status(200).json({ success: true, data });
+    const products = await productService.getProductsByIds(productIds);
+
+    if (!products.length) {
+      return res.status(404).json({ success: false, message: "No products found" });
+    }
+
+    return res.status(200).json({ success: true, data: products });
   } catch (error) {
-    console.error("Error fetching products:", error.message || error);
-    res.status(error.message.includes("No products found") ? 404 : 500).json({
-      success: false,
-      message: error.message || "Internal Server Error"
-    });
+    return res.status(500).json({ success: false, message: error.message });
   }
 };
 
-module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById, getProductsById  };
+module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById, getProductsByIds  };

@@ -258,20 +258,36 @@ const getPaginatedProducts2 = async (page, limit, category_id, sort) => {
   }
 };
 
-const getProductsById = async (productIds) => {
-  try {
-    const ids = Array.isArray(productIds) ? productIds : [productIds];
-    const foundProducts = products.filter(p => ids.includes(p.product_id));
-    
-    if (foundProducts.length === 0) {
-      throw new Error("No products found with the specified IDs");
-    }
-    
-    return foundProducts;
-  } catch (error) {
-    console.error('Error in getProductsById:', error);
-    throw error;
+const getProductsByIds = async (productIds) => {
+  if (!Array.isArray(productIds) || productIds.length === 0) {
+    throw new Error("Invalid product IDs");
   }
+
+  // Get products from local data
+  const filteredProducts = products.filter(p => productIds.includes(p.product_id));
+
+  if (filteredProducts.length === 0) {
+    throw new Error("No products found");
+  }
+
+  // Fetch raw_tshirt details from Supabase for all products
+  const allRawTshirtIds = [...new Set(filteredProducts.flatMap(p => p.raw_tshirt_ids || []))];
+
+  const { data: rawTshirts, error } = await supabase
+    .from("raw_tshirts")
+    .select("*")
+    .in("id", allRawTshirtIds);
+
+  if (error) {
+    console.error("Supabase raw_tshirts error:", error);
+    throw new Error("Failed to fetch raw tshirt data");
+  }
+
+  // Attach raw_tshirt details to each product
+  return filteredProducts.map(product => ({
+    ...product,
+    raw_tshirt_ids: rawTshirts.filter(rt => product.raw_tshirt_ids.includes(rt.id))
+  }));
 };
 
-module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById, getProductsById };
+module.exports = { addProduct, updateProduct, deleteProduct, getPaginatedProducts2, getProductById, getProductsByIds };
