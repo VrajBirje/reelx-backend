@@ -28,8 +28,9 @@ const addToCart = async (customer_id, product_id, size, quantity = 1) => {
             product = fetchedProduct;
         }
 
-        // Find raw_tshirt_id based on size
-        const rawTshirtId = product.raw_tshirt_ids?.[0] || null; // Assuming first raw_tshirt_id for selected size
+        // Determine raw_tshirt_id based on size
+        const sizeIndexMap = { S: 0, M: 1, L: 2, XL: 3 };
+        const rawTshirtId = product.raw_tshirt_ids?.[sizeIndexMap[size]] || null;
 
         // Check if product already exists in cart
         const { data: existingCart, error: cartError } = await supabase
@@ -71,57 +72,59 @@ const addToCart = async (customer_id, product_id, size, quantity = 1) => {
 
 const getCartItemsByCustomer = async (customer_id) => {
     try {
-        // Fetch cart items including cart_id
-        const { data: cartItems, error } = await supabase
+        // 1. Fetch only cart items from Supabase
+        const { data: cartItems, error: cartError } = await supabase
             .from("cart")
             .select("cart_id, product_id, quantity, size, raw_tshirt_id")
             .eq("customer_id", customer_id);
 
-        if (error) throw error;
+        if (cartError) throw cartError;
+        if (!cartItems?.length) return { success: true, data: [] };
 
-        // Fetch product and raw_tshirt details for each cart item
-        const productPromises = cartItems.map(async (item) => {
-            // Check if product exists in local data
-            let product = productsData.find(p => p.product_id === item.product_id);
+        // 2. Create a Set of unique raw_tshirt_ids for bulk fetch
+        const rawTshirtIds = [...new Set(
+            cartItems.map(item => item.raw_tshirt_id).filter(Boolean)
+        )];
 
-            if (!product) {
-                // Fetch from Supabase if not found in local data
-                const { data: fetchedProduct, error: productError } = await supabase
-                    .from("product")
-                    .select("name, description, price, discountedprice, discount, category_id, tag, images, date_added, date_updated, color, raw_tshirt_ids")
-                    .eq("product_id", item.product_id)
-                    .single();
-
-                if (productError) throw productError;
-                product = fetchedProduct;
-            }
-
-            // Fetch raw_tshirt details
-            const { data: rawTshirt, error: rawTshirtError } = await supabase
+        // 3. Fetch all needed raw_tshirts in one query
+        const { data: rawTshirts = [], error: rawTshirtsError } = rawTshirtIds.length 
+            ? await supabase
                 .from("raw_tshirts")
                 .select("id, quantity, size")
-                .eq("id", item.raw_tshirt_id)
-                .single();
+                .in("id", rawTshirtIds)
+            : { data: [], error: null };
 
-            if (rawTshirtError) throw rawTshirtError;
+        if (rawTshirtsError) throw rawTshirtsError;
+
+        // 4. Create lookup maps
+        const rawTshirtMap = new Map(rawTshirts.map(t => [t.id, t]));
+        const productMap = new Map(productsData.map(p => [p.product_id, p]));
+
+        // 5. Combine all data with local products
+        const result = cartItems.map(item => {
+            const product = productMap.get(item.product_id);
+            if (!product) {
+                console.warn(`Product ${item.product_id} not found in local data`);
+                return null;
+            }
 
             return {
                 cart_id: item.cart_id,
                 product_id: item.product_id,
                 quantity: item.quantity,
                 size: item.size,
-                raw_tshirt: rawTshirt || null,
-                ...product,
+                raw_tshirt: item.raw_tshirt_id ? rawTshirtMap.get(item.raw_tshirt_id) : null,
+                ...product
             };
-        });
+        }).filter(Boolean); // Remove any items with missing products
 
-        const products = await Promise.all(productPromises);
-
-        return { success: true, data: products };
+        return { success: true, data: result };
     } catch (error) {
+        console.error("Error fetching cart items:", error);
         return { success: false, message: error.message };
     }
 };
+
 
 
 const removeFromCart = async (cart_id) => {
