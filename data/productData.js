@@ -252,7 +252,7 @@ const products = [
         images: ["https://res.cloudinary.com/dqzvpy7hf/image/upload/v1743403603/28_mkzwtu.png","https://res.cloudinary.com/dqzvpy7hf/image/upload/v1743403827/21_cpuzvk.png"],
         date_added: "2025-03-30 07:38:02.161328",
         date_updated: "2025-03-30 07:38:02.161328",
-        raw_tshirt_ids: [1, 2, 3, 4],
+        raw_tshirt_ids: [13,14,15,16],
         color: "Beige"
     },
     {
@@ -267,7 +267,7 @@ const products = [
         images: ["https://res.cloudinary.com/dqzvpy7hf/image/upload/v1743403608/40_lhoemb.png","https://res.cloudinary.com/dqzvpy7hf/image/upload/v1743403604/36_i8dgbt.png"],
         date_added: "2025-03-30 07:38:02.161328",
         date_updated: "2025-03-30 07:38:02.161328",
-        raw_tshirt_ids: [1, 2, 3, 4],
+        raw_tshirt_ids: [9, 10, 11, 12],
         color: "Gray"
     }
 ];

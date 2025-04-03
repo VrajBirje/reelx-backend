@@ -16,7 +16,8 @@ const orderRoutes = require('./routes/orderRoutes');
 const allowedOrigins = [
   'https://reelxclothing.com',
   'http://localhost:3000', // Add localhost:3000 to the allowed origins
-  'https://reelx-seven.vercel.app'
+  'http://192.168.17.34:3000', // Add localhost:3000 to the allowed origins
+  'https://reelx-seven.vercel.app',
 ];
 
 app.use(cors({

@@ -198,7 +198,7 @@ const deleteProduct = async (product_id) => {
 //     throw err;
 //   }
 // };
-const getProductById = async (product_id) => {
+const getProductById = async (product_id) => { 
   if (!product_id || isNaN(product_id)) {
     throw new Error("Invalid product ID");
   }
@@ -221,11 +221,15 @@ const getProductById = async (product_id) => {
     throw new Error("Failed to fetch raw tshirt data");
   }
 
+  // Sort rawTshirts based on the order in product.raw_tshirt_ids
+  const sortedRawTshirts = product.raw_tshirt_ids.map(id => rawTshirts.find(t => t.id === id));
+
   return {
     ...product,
-    raw_tshirt_ids: rawTshirts || []
+    raw_tshirt_ids: sortedRawTshirts.filter(Boolean) // Ensuring no undefined values
   };
 };
+
 
 const getPaginatedProducts2 = async (page, limit, category_id, sort) => {
   try {
