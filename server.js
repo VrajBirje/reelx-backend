@@ -14,7 +14,7 @@ const orderRoutes = require('./routes/orderRoutes');
 
 // Allow requests from specific origin (frontend domain)
 const allowedOrigins = [
-  'https://reelxclothing.com',
+  'https://reelxclothing.shop',
   'http://localhost:3000', // Add localhost:3000 to the allowed origins
   'http://192.168.17.34:3000', // Add localhost:3000 to the allowed origins
   'https://reelx-seven.vercel.app',
